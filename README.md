@@ -16,7 +16,7 @@ El trabajo colaborativo se ha organizado bajo la siguiente estructura de roles p
 | **Líder de Proyecto** | Jackson Reyes | Coordinación, revisión de PRs y gestión de la rama `develop`. |
 | **DevOps / Operaciones** | Jackson Reyes | Creación del `Dockerfile`, gestión de contenedores y despliegue. |
 | **Desarrollador Frontend** | Melanie Garcia/Isaac Chico | Maquetación, componentes Vue (`Menu`, `Reservation`) y estilos. |
-| **Desarrollador Backend** | Jackson Reyes/Luis Peñafiel | Lógica de la aplicación y conexión de datos. |
+| **Desarrollador Backend** | Edgar Lara/Luis Peñafiel | Lógica de la aplicación y conexión de datos. |
 | **Documentador** | Melanie Garcia | Redacción de este README y del informe final en PDF. |
 
 ---
