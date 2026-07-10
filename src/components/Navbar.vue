@@ -3,6 +3,8 @@ import { ref, onMounted, onUnmounted } from 'vue'
 
 const scrolled = ref(false)
 const menuOpen = ref(false)
+const isAdmin = ref(false)
+let authInterval = null
 
 const handleScroll = () => {
   scrolled.value = window.scrollY > 50
@@ -10,10 +12,15 @@ const handleScroll = () => {
 
 onMounted(() => {
   window.addEventListener('scroll', handleScroll)
+  isAdmin.value = !!localStorage.getItem('adminToken')
+  authInterval = setInterval(() => {
+    isAdmin.value = !!localStorage.getItem('adminToken')
+  }, 1000)
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
+  if (authInterval) clearInterval(authInterval)
 })
 
 function closeMenu() {
@@ -44,6 +51,7 @@ function closeMenu() {
         <li><a href="#prices" @click="closeMenu">Precios</a></li>
         <li><a href="#reservation" @click="closeMenu">Reserva</a></li>
         <li><a href="#contact" @click="closeMenu">Contacto</a></li>
+        <li v-if="isAdmin"><router-link to="/reportes" @click="closeMenu">Reportes</router-link></li>
       </ul>
     </div>
   </nav>

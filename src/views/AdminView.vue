@@ -6,7 +6,7 @@ const router = useRouter()
 const categories = ref([])
 const menuItems = ref([])
 
-// 'dashboard', 'categories_list', 'categories_add', 'menuitems_list', 'menuitems_add'
+// 'dashboard', 'categories_list', 'categories_add', 'menuitems_list', 'menuitems_add', 'about_change'
 const currentView = ref('dashboard')
 
 const newCategory = ref('')
@@ -17,6 +17,9 @@ const newItem = ref({
   imageUrl: '',
   categoryId: ''
 })
+const newPrice = ref({ name: '', range: '', icon: '', desc: '' })
+const aboutData = ref(null)
+const contactData = ref(null)
 
 const getHeaders = () => {
   const token = localStorage.getItem('adminToken')
@@ -39,6 +42,82 @@ const logout = () => {
   router.push('/login')
 }
 
+const fetchAbout = async () => {
+  const res = await fetch('http://localhost:3000/api/about')
+  if (res.ok) {
+    aboutData.value = await res.json()
+  }
+}
+
+const updateAbout = async () => {
+  if (!aboutData.value) return
+  const formData = new FormData()
+  
+  formData.append('title', aboutData.value.title)
+  formData.append('intro', aboutData.value.intro)
+  formData.append('body', aboutData.value.body)
+  
+  const fileInput = document.getElementById('id_aboutImageFile')
+  if (aboutData.value.removeImage) {
+    formData.append('removeImage', 'true')
+  } else if (fileInput && fileInput.files[0]) {
+    formData.append('imageFile', fileInput.files[0])
+  } else if (aboutData.value.imageUrl) {
+    formData.append('imageUrl', aboutData.value.imageUrl)
+  }
+
+  formData.append('val1Icon', aboutData.value.val1Icon)
+  formData.append('val1Title', aboutData.value.val1Title)
+  formData.append('val1Desc', aboutData.value.val1Desc)
+  
+  formData.append('val2Icon', aboutData.value.val2Icon)
+  formData.append('val2Title', aboutData.value.val2Title)
+  formData.append('val2Desc', aboutData.value.val2Desc)
+  
+  formData.append('val3Icon', aboutData.value.val3Icon)
+  formData.append('val3Title', aboutData.value.val3Title)
+  formData.append('val3Desc', aboutData.value.val3Desc)
+
+  const token = localStorage.getItem('adminToken')
+  const res = await fetch('http://localhost:3000/api/about', {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    body: formData
+  })
+  if (handleAuthError(res)) return
+  if (fileInput) fileInput.value = ''
+  currentView.value = 'dashboard'
+}
+
+const fetchContact = async () => {
+  const res = await fetch('http://localhost:3000/api/contact')
+  if (res.ok) {
+    contactData.value = await res.json()
+  }
+}
+
+const updateContact = async () => {
+  if (!contactData.value) return
+  const token = localStorage.getItem('adminToken')
+  const res = await fetch('http://localhost:3000/api/contact', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      address: contactData.value.address,
+      phone: contactData.value.phone,
+      email: contactData.value.email,
+      schedule: contactData.value.schedule
+    })
+  })
+  if (handleAuthError(res)) return
+  currentView.value = 'dashboard'
+}
+
 const fetchCategories = async () => {
   const res = await fetch('http://localhost:3000/api/categories')
   categories.value = await res.json()
@@ -47,6 +126,12 @@ const fetchCategories = async () => {
 const fetchMenuItems = async () => {
   const res = await fetch('http://localhost:3000/api/menu')
   menuItems.value = await res.json()
+}
+
+const prices = ref([])
+const fetchPrices = async () => {
+  const res = await fetch('http://localhost:3000/api/prices')
+  prices.value = await res.json()
 }
 
 const addCategory = async () => {
@@ -60,6 +145,21 @@ const addCategory = async () => {
   newCategory.value = ''
   await fetchCategories()
   currentView.value = 'categories_list'
+}
+
+const deleteCategory = async (id) => {
+  if (!confirm("Are you sure you want to delete this category?")) return;
+  const res = await fetch(`http://localhost:3000/api/categories/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders()
+  })
+  if (handleAuthError(res)) return
+  if (!res.ok) {
+    const errorData = await res.json()
+    alert(errorData.error || 'Error deleting category')
+    return
+  }
+  await fetchCategories()
 }
 
 const addItem = async () => {
@@ -104,14 +204,48 @@ const deleteItem = async (id) => {
   fetchMenuItems()
 }
 
+const addPrice = async () => {
+  if (!newPrice.value.name || !newPrice.value.range) return
+  const res = await fetch('http://localhost:3000/api/prices', {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(newPrice.value)
+  })
+  if (handleAuthError(res)) return
+  newPrice.value = { name: '', range: '', icon: '', desc: '' }
+  await fetchPrices()
+  currentView.value = 'prices_list'
+}
+
+const deletePrice = async (id) => {
+  if (!confirm("Are you sure you want to delete this price item?")) return;
+  const res = await fetch(`http://localhost:3000/api/prices/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders()
+  })
+  if (handleAuthError(res)) return
+  await fetchPrices()
+}
+
 const getCategoryName = (id) => {
   const cat = categories.value.find(c => c.id === id)
   return cat ? cat.name : 'Unknown'
 }
 
+const viewAbout = async () => {
+  await fetchAbout()
+  currentView.value = 'about_change'
+}
+
+const viewContact = async () => {
+  await fetchContact()
+  currentView.value = 'contact_change'
+}
+
 onMounted(() => {
   fetchCategories()
   fetchMenuItems()
+  fetchPrices()
 })
 </script>
 
@@ -135,10 +269,10 @@ onMounted(() => {
     <div class="breadcrumbs">
       <a @click="currentView = 'dashboard'" style="cursor:pointer;">Home</a>
       <span v-if="currentView !== 'dashboard'">
-        &rsaquo; <a @click="currentView = currentView.split('_')[0] + '_list'" style="cursor:pointer;">{{ currentView.includes('categories') ? 'Categories' : 'Menu items' }}</a>
+        &rsaquo; <a @click="currentView = currentView.split('_')[0] + '_list'" style="cursor:pointer;">{{ currentView.includes('categories') ? 'Categories' : currentView.includes('menu') ? 'Menu items' : 'About' }}</a>
       </span>
-      <span v-if="currentView.includes('add')">
-        &rsaquo; Add
+      <span v-if="currentView.includes('add') || currentView === 'about_change'">
+        &rsaquo; {{ currentView === 'about_change' ? 'Change' : 'Add' }}
       </span>
     </div>
 
@@ -163,6 +297,21 @@ onMounted(() => {
                 <td><a @click="currentView = 'menuitems_add'" class="addlink">Add</a></td>
                 <td><a @click="currentView = 'menuitems_list'" class="changelink">Change</a></td>
               </tr>
+              <tr class="model-price-item">
+                <th scope="row"><a @click="currentView = 'prices_list'">Prices</a></th>
+                <td><a @click="currentView = 'prices_add'" class="addlink">Add</a></td>
+                <td><a @click="currentView = 'prices_list'" class="changelink">Change</a></td>
+              </tr>
+              <tr class="model-about">
+                <th scope="row"><a @click="viewAbout">About</a></th>
+                <td></td>
+                <td><a @click="viewAbout" class="changelink">Change</a></td>
+              </tr>
+              <tr class="model-contact">
+                <th scope="row"><a @click="viewContact">Contact Info</a></th>
+                <td></td>
+                <td><a @click="viewContact" class="changelink">Change</a></td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -180,11 +329,17 @@ onMounted(() => {
                 <th scope="col">
                   <div class="text"><a>Category</a></div>
                 </th>
+                <th scope="col">
+                  <div class="text"><a>Action</a></div>
+                </th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="(cat, index) in categories" :key="cat.id" :class="index % 2 === 0 ? 'row1' : 'row2'">
                 <th class="field-name"><a>{{ cat.name }}</a></th>
+                <td class="field-action">
+                  <a @click="deleteCategory(cat.id)" style="color: #ba2121; cursor: pointer; font-weight: bold;">Delete</a>
+                </td>
               </tr>
               <tr v-if="categories.length === 0">
                 <td style="padding: 10px;">0 categories found.</td>
@@ -293,6 +448,226 @@ onMounted(() => {
             </div>
           </div>
         </form>
+      </div>
+
+      <!-- About Us Form View -->
+      <div v-if="currentView === 'about_change'" id="content-main">
+        <form @submit.prevent="updateAbout">
+          <fieldset class="module aligned" v-if="aboutData">
+            <div class="form-row">
+              <div>
+                <label class="required" for="id_title">Título:</label>
+                <input type="text" v-model="aboutData.title" class="vTextField" maxlength="255" required id="id_title">
+              </div>
+            </div>
+            <div class="form-row">
+              <div>
+                <label class="required" for="id_intro">Introducción:</label>
+                <textarea v-model="aboutData.intro" class="vLargeTextField" required id="id_intro" cols="40" rows="3"></textarea>
+              </div>
+            </div>
+            <div class="form-row">
+              <div>
+                <label class="required" for="id_body">Cuerpo:</label>
+                <textarea v-model="aboutData.body" class="vLargeTextField" required id="id_body" cols="40" rows="5"></textarea>
+              </div>
+            </div>
+            <div class="form-row">
+              <div>
+                <label for="id_aboutImageFile">Imagen:</label>
+                <input type="file" id="id_aboutImageFile" accept="image/*" style="border:none; padding:0;">
+              </div>
+            </div>
+            <div class="form-row">
+              <div>
+                <label for="id_remove_image">Quitar imagen actual:</label>
+                <input type="checkbox" id="id_remove_image" v-model="aboutData.removeImage">
+              </div>
+            </div>
+            
+            <h2 style="padding: 10px;">Valor 1</h2>
+            <div class="form-row">
+              <div>
+                <label class="required">Icono 1:</label>
+                <input type="text" v-model="aboutData.val1Icon" class="vTextField" maxlength="10" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div>
+                <label class="required">Título 1:</label>
+                <input type="text" v-model="aboutData.val1Title" class="vTextField" maxlength="50" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div>
+                <label class="required">Texto 1:</label>
+                <input type="text" v-model="aboutData.val1Desc" class="vTextField" maxlength="200" required>
+              </div>
+            </div>
+
+            <h2 style="padding: 10px;">Valor 2</h2>
+            <div class="form-row">
+              <div>
+                <label class="required">Icono 2:</label>
+                <input type="text" v-model="aboutData.val2Icon" class="vTextField" maxlength="10" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div>
+                <label class="required">Título 2:</label>
+                <input type="text" v-model="aboutData.val2Title" class="vTextField" maxlength="50" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div>
+                <label class="required">Texto 2:</label>
+                <input type="text" v-model="aboutData.val2Desc" class="vTextField" maxlength="200" required>
+              </div>
+            </div>
+
+            <h2 style="padding: 10px;">Valor 3</h2>
+            <div class="form-row">
+              <div>
+                <label class="required">Icono 3:</label>
+                <input type="text" v-model="aboutData.val3Icon" class="vTextField" maxlength="10" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div>
+                <label class="required">Título 3:</label>
+                <input type="text" v-model="aboutData.val3Title" class="vTextField" maxlength="50" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div>
+                <label class="required">Texto 3:</label>
+                <input type="text" v-model="aboutData.val3Desc" class="vTextField" maxlength="200" required>
+              </div>
+            </div>
+
+          </fieldset>
+          
+          <div class="submit-row">
+            <input type="submit" value="Save" class="default" name="_save">
+          </div>
+        </form>
+      </div>
+
+      <!-- Contact Info Form View -->
+      <div v-if="currentView === 'contact_change'" id="content-main">
+        <form @submit.prevent="updateContact">
+          <fieldset class="module aligned" v-if="contactData">
+            <div class="form-row">
+              <div>
+                <label class="required" for="id_address">Dirección:</label>
+                <textarea v-model="contactData.address" class="vLargeTextField" required id="id_address" cols="40" rows="3"></textarea>
+              </div>
+            </div>
+            <div class="form-row">
+              <div>
+                <label class="required" for="id_phone">Teléfono:</label>
+                <input type="text" v-model="contactData.phone" class="vTextField" maxlength="50" required id="id_phone">
+              </div>
+            </div>
+            <div class="form-row">
+              <div>
+                <label class="required" for="id_email">Email:</label>
+                <input type="email" v-model="contactData.email" class="vTextField" maxlength="100" required id="id_email">
+              </div>
+            </div>
+            <div class="form-row">
+              <div>
+                <label class="required" for="id_schedule">Horarios:</label>
+                <textarea v-model="contactData.schedule" class="vLargeTextField" required id="id_schedule" cols="40" rows="4"></textarea>
+              </div>
+            </div>
+          </fieldset>
+          <div class="submit-row">
+            <input type="submit" value="Save" class="default" name="_save">
+          </div>
+        </form>
+      </div>
+
+      <!-- Prices List View -->
+      <div v-if="currentView === 'prices_list'" id="content" class="colM">
+        <h1>Select price item to change</h1>
+        <div id="content-main">
+          <ul class="object-tools">
+            <li><a @click="currentView = 'prices_add'" class="addlink">Add price item</a></li>
+          </ul>
+          <div class="module" id="changelist">
+            <div class="results">
+              <table id="result_list">
+                <thead>
+                  <tr>
+                    <th scope="col" class="sortable column-name">
+                      <div class="text"><a>Name</a></div>
+                    </th>
+                    <th scope="col" class="sortable column-range">
+                      <div class="text"><a>Range</a></div>
+                    </th>
+                    <th scope="col" class="sortable column-icon">
+                      <div class="text"><a>Icon</a></div>
+                    </th>
+                    <th scope="col" class="sortable column-delete">
+                      <div class="text"><a>Delete</a></div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(p, idx) in prices" :key="p.id" :class="idx % 2 === 0 ? 'row1' : 'row2'">
+                    <th class="field-name"><a>{{ p.name }}</a></th>
+                    <td class="field-range">{{ p.range }}</td>
+                    <td class="field-icon">{{ p.icon }}</td>
+                    <td class="field-delete">
+                      <a @click="deletePrice(p.id)" style="color: #ba2121; cursor:pointer;">Delete</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="paginator">{{ prices.length }} price items</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Prices Add View -->
+      <div v-if="currentView === 'prices_add'" id="content" class="colM">
+        <h1>Add price item</h1>
+        <div id="content-main">
+          <form @submit.prevent="addPrice">
+            <fieldset class="module aligned">
+              <div class="form-row">
+                <div>
+                  <label class="required" for="id_name">Name:</label>
+                  <input type="text" v-model="newPrice.name" class="vTextField" maxlength="255" required id="id_name">
+                </div>
+              </div>
+              <div class="form-row">
+                <div>
+                  <label class="required" for="id_range">Range:</label>
+                  <input type="text" v-model="newPrice.range" class="vTextField" maxlength="255" required id="id_range">
+                </div>
+              </div>
+              <div class="form-row">
+                <div>
+                  <label class="required" for="id_icon">Icon:</label>
+                  <input type="text" v-model="newPrice.icon" class="vTextField" maxlength="255" required id="id_icon">
+                </div>
+              </div>
+              <div class="form-row">
+                <div>
+                  <label class="required" for="id_desc">Description:</label>
+                  <textarea v-model="newPrice.desc" class="vLargeTextField" required id="id_desc" cols="40" rows="5"></textarea>
+                </div>
+              </div>
+            </fieldset>
+            
+            <div class="submit-row">
+              <input type="submit" value="Save" class="default" name="_save">
+            </div>
+          </form>
+        </div>
       </div>
 
     </div>

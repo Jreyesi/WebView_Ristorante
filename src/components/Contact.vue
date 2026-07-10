@@ -1,3 +1,32 @@
+<script setup>
+import { ref, onMounted } from 'vue'
+
+const contactInfo = ref({
+  address: 'Cargando...',
+  phone: '...',
+  email: '...',
+  schedule: '...'
+})
+
+const fetchContact = async () => {
+  try {
+    const res = await fetch('http://localhost:3000/api/contact')
+    if (res.ok) {
+      const data = await res.json()
+      if (data && data.address) {
+        contactInfo.value = data
+      }
+    }
+  } catch (error) {
+    console.error('Failed to fetch contact info')
+  }
+}
+
+onMounted(() => {
+  fetchContact()
+})
+</script>
+
 <template>
   <section id="contact" class="contact-section">
     <div class="container">
@@ -9,28 +38,28 @@
             <span class="contact-icon">📍</span>
             <div>
               <h4>Dirección</h4>
-              <p>Av. 9 de Octubre 432, Centro<br />Guayaquil, Ecuador</p>
+              <p style="white-space: pre-line;">{{ contactInfo.address }}</p>
             </div>
           </div>
           <div class="contact-item">
             <span class="contact-icon">📞</span>
             <div>
               <h4>Teléfono</h4>
-              <p><a href="tel:+593981029187">+593 98 102 9187</a></p>
+              <p><a :href="'tel:' + contactInfo.phone.replace(/\s+/g, '')">{{ contactInfo.phone }}</a></p>
             </div>
           </div>
           <div class="contact-item">
             <span class="contact-icon">✉️</span>
             <div>
               <h4>Email</h4>
-              <p><a href="mailto:info@ristoranteitalia.ec">info@ristoranteitalia.ec</a></p>
+              <p><a :href="'mailto:' + contactInfo.email">{{ contactInfo.email }}</a></p>
             </div>
           </div>
           <div class="contact-item">
             <span class="contact-icon">🕐</span>
             <div>
               <h4>Horarios</h4>
-              <p>Lun — Sáb: 12:00 — 23:00<br />Domingo: 13:00 — 22:00</p>
+              <p style="white-space: pre-line;">{{ contactInfo.schedule }}</p>
             </div>
           </div>
         </div>
