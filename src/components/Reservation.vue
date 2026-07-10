@@ -85,7 +85,7 @@ function handleChange(name, value) {
   }
 }
 
-function handleSubmit(e) {
+async function handleSubmit(e) {
   e.preventDefault()
   const keys = Object.keys(form)
   for (const key of keys) {
@@ -93,21 +93,38 @@ function handleSubmit(e) {
   }
   if (!validateAll()) return
   status.value = 'loading'
-  setTimeout(() => {
-    status.value = 'success'
-    form.name = ''
-    form.email = ''
-    form.phone = ''
-    form.date = ''
-    form.time = ''
-    form.people = 1
-    form.message = ''
-    for (const key of keys) {
-      delete errors[key]
-      delete touched[key]
+  
+  try {
+    const res = await fetch('http://localhost:3000/api/reservations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(form)
+    })
+    
+    if (res.ok) {
+      status.value = 'success'
+      form.name = ''
+      form.email = ''
+      form.phone = ''
+      form.date = ''
+      form.time = ''
+      form.people = 1
+      form.message = ''
+      for (const key of keys) {
+        delete errors[key]
+        delete touched[key]
+      }
+      setTimeout(() => { status.value = 'idle' }, 4000)
+    } else {
+      status.value = 'idle'
+      alert('Hubo un error al procesar tu reserva.')
     }
-    setTimeout(() => { status.value = 'idle' }, 4000)
-  }, 1500)
+  } catch (error) {
+    status.value = 'idle'
+    alert('Error de conexión. Inténtalo más tarde.')
+  }
 }
 
 function showError(field) {

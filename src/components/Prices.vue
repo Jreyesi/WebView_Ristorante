@@ -1,11 +1,22 @@
 <script setup>
-const priceData = [
-  { name: 'Antipasti', range: '$8 — $15', icon: '\u{1F957}', desc: 'Entradas y aperitivos tradicionales' },
-  { name: 'Primi (Pastas)', range: '$12 — $22', icon: '\u{1F35D}', desc: 'Pastas artesanales y risottos' },
-  { name: 'Secondi (Carnes / Pescados)', range: '$18 — $35', icon: '\u{1F969}', desc: 'Platos fuertes de carne y pescado' },
-  { name: 'Dolci (Postres)', range: '$7 — $14', icon: '\u{1F370}', desc: 'Postres caseros tradicionales' },
-  { name: 'Vinos y Bebidas', range: '$25 — $80', icon: '\u{1F377}', desc: 'Selección de vinos italianos y cocktails' },
-]
+import { ref, onMounted } from 'vue'
+
+const priceData = ref([])
+
+const fetchPrices = async () => {
+  try {
+    const res = await fetch('http://localhost:3000/api/prices')
+    if (res.ok) {
+      priceData.value = await res.json()
+    }
+  } catch (error) {
+    console.error('Failed to fetch prices')
+  }
+}
+
+onMounted(() => {
+  fetchPrices()
+})
 </script>
 
 <template>
